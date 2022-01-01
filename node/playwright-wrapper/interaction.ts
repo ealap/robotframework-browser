@@ -16,16 +16,16 @@ import { Dialog, Page } from 'playwright';
 
 import { PlaywrightState } from './playwright-state';
 import { Request, Response } from './generated/playwright_pb';
-import { emptyWithLog, stringResponse } from './response-util';
-import { findLocator, invokeOnKeyboard, invokeOnMouse } from './playwright-invoke';
+import { emptyWithLog, jsonResponse, stringResponse } from './response-util';
+import { exists, findLocator, invokeOnKeyboard, invokeOnMouse } from './playwright-invoke';
 
-import * as pino from 'pino';
-const logger = pino.default({ timestamp: pino.stdTimeFunctions.isoTime });
+import pino from 'pino';
+const logger = pino({ timestamp: pino.stdTimeFunctions.isoTime });
 
 export async function selectOption(
     request: Request.SelectElementSelector,
     state: PlaywrightState,
-): Promise<Response.Empty> {
+): Promise<Response.Json> {
     const selector = request.getSelector();
     const matcher = JSON.parse(request.getMatcherjson());
     const strictMode = request.getStrict();
@@ -35,7 +35,18 @@ export async function selectOption(
         logger.info("Couldn't select any options");
         throw new Error(`No options matched ${matcher}`);
     }
-    return emptyWithLog(`Selected options ${result} in element ${selector}`);
+    const attributeName = Object.keys(matcher[0])[0];
+    const selectedOptions = [];
+    for (const selectedOption of result) {
+        const locatorOptions = locator.locator(`option[value="${selectedOption}"]`);
+        const element = await locatorOptions.elementHandle();
+        exists(element, `The ${selectedOption} option element did not exist.`);
+        selectedOptions.push(String(await element.getProperty(attributeName)));
+    }
+    return jsonResponse(
+        JSON.stringify(selectedOptions),
+        `Selected options [${selectedOptions}] in element ${selector}`,
+    );
 }
 
 export async function deSelectOption(
@@ -127,6 +138,7 @@ export async function checkCheckbox(request: Request.ElementSelector, state: Pla
     const selector = request.getSelector();
     const strictMode = request.getStrict();
     const locator = await findLocator(state, selector, strictMode, undefined, true);
+    await locator.waitFor({ state: 'attached' });
     await locator.check();
     return emptyWithLog(`Checked checkbox: ${selector}`);
 }
@@ -138,8 +150,21 @@ export async function uncheckCheckbox(
     const selector = request.getSelector();
     const strictMode = request.getStrict();
     const locator = await findLocator(state, selector, strictMode, undefined, true);
+    await locator.waitFor({ state: 'attached' });
     await locator.uncheck();
     return emptyWithLog(`Unchecked checkbox: ${selector}`);
+}
+
+export async function uploadFileBySelector(
+    request: Request.FileBySelector,
+    state: PlaywrightState,
+): Promise<Response.Empty> {
+    const selector = request.getSelector();
+    const strictMode = request.getStrict();
+    const path = request.getPath();
+    const locator = await findLocator(state, selector, strictMode, undefined, true);
+    await locator.setInputFiles(path);
+    return emptyWithLog('Succesfully uploaded file');
 }
 
 export async function uploadFile(request: Request.FilePath, page: Page): Promise<Response.Empty> {

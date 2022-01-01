@@ -66,7 +66,11 @@ class Promises(LibraryComponent):
     def promise_to_wait_for_download(self, saveAs: str = "") -> Future:
         """Returns a promise that waits for next download event on page.
 
+        If you can get the URL for the file to download, ``Download`` keyword should be a consistent way to download the file.
+
         To enable downloads context's ``acceptDownloads`` needs to be true.
+
+        To configure download directory use New Browser's ``downloadsPath`` settings
 
         With default filepath downloaded files are deleted when Context the download happened in is closed.
 
@@ -145,13 +149,17 @@ class Promises(LibraryComponent):
 
     @keyword(tags=("Setter", "PageContent"))
     def promise_to_upload_file(self, path: PathLike):
-        """Returns a promise that resolves when file from ``path`` has been uploaded.
+        """*!!DEPRECATED!!* Use keyword `Upload File By Selector` instead if possible. If your use case _needs_ promise to upload file please let the Browser team know by creating an issue.
+
+        Returns a promise that resolves when file from ``path`` has been uploaded.
 
         Fails if the upload has not happened during timeout.
 
         Upload file from ``path`` into next file chooser dialog on page.
 
         ``path`` Path to file to be uploaded.
+
+        !! Due to a certain problem with Playwright library currently files over 74 MB will fail to upload. !!
 
         Example use:
 

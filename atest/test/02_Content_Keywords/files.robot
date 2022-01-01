@@ -8,24 +8,37 @@ Test Teardown       Run Keywords    Restore Library Timeout    AND    Wait For A
 ${CUSTOM_DL_PATH} =     ${CURDIR}/download_file
 
 *** Test Cases ***
-Upload File
-    New Page    ${LOGIN_URL}
-    Promise To Upload File    ${CURDIR}/test_upload_file
-    Click    \#file_chooser
-    Get Text    \#upload_result    ==    test_upload_file
+Upload upload_test_file
+    Upload Named File    test_upload_file
+
+Upload 75MB file
+    [Tags]    no-windows-support
+    [Timeout]    2 minute
+    Run Keyword And Expect Error    STARTS: Error: locator.setInputFiles: Target closed
+    ...    Upload Sized File    75
+    # The browser actually gets a bit stuck so it needs to be cleaned up properly here.
+    [Teardown]    Close Browser
+
+Upload 1MB file
+    [Timeout]    30 seconds
+    Upload Sized File    1
+
+Upload 74MB file
+    [Timeout]    2 minute
+    Upload Sized File    74
+
+Upload 5MB file
+    [Timeout]    30 seconds
+    Upload Sized File    5
 
 Upload File with different name
-    New Page    ${LOGIN_URL}
-    Promise to Upload File    ${CURDIR}/invalid_test_upload_file
-    Click    \#file_chooser
-    Get Text    \#upload_result    ==    wrong_upload_filename
+    Upload Named File    invalid_test_upload_file
 
 Invalid Upload Path
-    [Tags]    no-windows-support
-    ${promise} =    Promise to Upload File    NonExistentFile
-    Run Keyword And Expect Error    STARTS: FileNotFoundError: [Errno 2] No such file or directory:    Wait For
-    ...    ${promise}
-    Wait For All Promises
+    New Page    ${LOGIN_URL}
+    Run Keyword And Expect Error
+    ...    Nonexistent input file path
+    ...    Upload File By Selector    \#file_chooser    NonExistentFile
 
 Wait For Download
     New Context    acceptDownloads=True
@@ -39,7 +52,6 @@ Wait For Download
     Remove File    ${file_object}[saveAs]
 
 Wait For Download With Custom Path
-    [Tags]    no-windows-support
     New Context    acceptDownloads=True
     New Page    ${LOGIN_URL}
     ${dl_promise} =    Promise To Wait For Download    saveAs=${CUSTOM_DL_PATH}
@@ -62,8 +74,37 @@ Set Library Timeout
     IF    $current_contexts == []
         New Context
     END
-    ${timeout} =    Set Browser Timeout    2 seconds
+    ${timeout} =    Set Browser Timeout    90 seconds
     Set Suite Variable    ${ORIGINAL_TIMEOUT}    1s
 
 Restore Library Timeout
     Set Browser Timeout    ${ORIGINAL_TIMEOUT}
+
+Generate Test File
+    [Arguments]    ${size_in_mb}
+    ${filename} =    Set Variable    ${size_in_mb}MB
+    ${size_in_bytes} =    Evaluate    1024 * ${size_in_mb}
+    IF    os.sys.platform.startswith('win32')
+        Run    fsutil file createNew ${CURDIR}/${filename}.file ${${size_in_bytes}*1024}
+    ELSE
+        Run    dd if=/dev/zero of=${CURDIR}/${filename}.file bs=1024 count=${size_in_bytes}
+    END
+
+    [Return]    ${filename}.file
+
+Upload Sized File
+    [Arguments]    ${size_in_mb}
+
+    ${file_name} =    Generate Test File    ${size_in_mb}
+    Upload Named File    ${file_name}
+
+    [Teardown]    Remove File    ${CURDIR}/${file_name}
+
+Upload Named File
+    [Arguments]    ${file_name}
+    New Context
+    New Page    ${LOGIN_URL}
+    Get Text    \#upload_result    ==    ${EMPTY}
+    Upload File By Selector    \#file_chooser    ${CURDIR}/${file_name}
+    ${result_name} =    Get Text    \#upload_result
+    Get Text    \#upload_result    ==    ${file_name}

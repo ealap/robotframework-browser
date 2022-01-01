@@ -1,6 +1,9 @@
 *** Settings ***
-Library     OperatingSystem
-Resource    imports.resource
+Library             OperatingSystem
+Resource            imports.resource
+
+Test Setup          Open Browser To No Page
+Test Teardown       Close Browser
 
 *** Test Cases ***
 Open PDF in another tab and download it
@@ -29,7 +32,7 @@ Download without page URL fails
     New Context    acceptDownloads=${TRUE}
     New Page
     Run Keyword And Expect Error
-    ...    Error: page.evaluate:*
+    ...    Error: Download requires that the page has been navigated to an url
     ...    Download    ${WELCOME_URL}
 
 Download with no acceptDownloads fails
@@ -38,6 +41,9 @@ Download with no acceptDownloads fails
     Run keyword and expect error
     ...    Error: Context acceptDownloads is false
     ...    Download    ${WELCOME_URL}
+    Close Browser
+    New Browser
+    [Teardown]    NONE
 
 Open html in another tab
     New Page    ${WELCOME_URL}

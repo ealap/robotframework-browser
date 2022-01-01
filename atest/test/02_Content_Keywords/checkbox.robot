@@ -12,7 +12,7 @@ Get Checkbox State Unchecked
 
 Get Checkbox State With Strict
     Run Keyword And Expect Error
-    ...    *Error: strict mode violation: "//input" resolved to 12 elements*
+    ...    *strict mode violation*//input*resolved to 12 elements*
     ...    Get Checkbox State    //input
     Set Strict Mode    False
     ${state} =    Get Checkbox State    //input
@@ -37,9 +37,9 @@ Check Checkbox
     Should Be True    ${state}
 
 Check Checkbox With Strict
-    Run Keyword And Expect Error
-    ...    *Error: strict mode violation:*
-    ...    Check Checkbox    //input[@type="checkbox"]
+    # TODO: Change: "*2" to correct value after PW update
+    Run Keyword And Expect Error    *strict mode violation*//input[@type*resolved to*2 elements*    Check Checkbox
+    ...    //input[@type="checkbox"]
     Set Strict Mode    False
     Check Checkbox    //input[@type="checkbox"]
     [Teardown]    Set Strict Mode    True
@@ -51,7 +51,7 @@ Uncheck Checkbox
 
 Uncheck Checkbox With Strict
     Run Keyword And Expect Error
-    ...    *Error: strict mode violation: "//input" resolved to 12 elements*
+    ...    *Error: strict mode violation*//input*resolved to 12 elements*
     ...    Uncheck Checkbox    //input
     Set Strict Mode    False
     Run Keyword And Expect Error
@@ -64,3 +64,17 @@ Get Checkbox State With Nonmatching Selector
     Run Keyword And Expect Error    *Timeout 50ms exceeded.*waiting for selector "xpath=//notamatch"*
     ...    Get Checkbox State    xpath=//notamatch
     [Teardown]    Set Browser Timeout    ${PLAYWRIGHT_TIMEOUT}
+
+Check Checkbox With Waiting
+    New Page    ${WAIT_URL}
+    Select Options By    \#dropdown    value    True    attached-unchecked
+    Click    \#submit    noWaitAfter=True
+    Check Checkbox    \#victim
+    Get Checkbox State    \#victim    ==    ${True}
+
+Uncheck Checkbox With Waiting
+    New Page    ${WAIT_URL}
+    Select Options By    \#dropdown    value    True    attached-checked
+    Click    \#submit    noWaitAfter=True
+    Uncheck Checkbox    \#victim
+    Get Checkbox State    \#victim    ==    ${False}

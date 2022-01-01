@@ -21,8 +21,8 @@ import { Request, Response } from './generated/playwright_pb';
 import { emptyWithLog, jsResponse, jsonResponse, stringResponse } from './response-util';
 import { findLocator } from './playwright-invoke';
 
-import * as pino from 'pino';
-const logger = pino.default({ timestamp: pino.stdTimeFunctions.isoTime });
+import { pino } from 'pino';
+const logger = pino({ timestamp: pino.stdTimeFunctions.isoTime });
 
 declare global {
     interface Window {
@@ -300,6 +300,10 @@ export async function download(request: Request.Url, state: PlaywrightState): Pr
         throw new Error('Download requires an active page');
     }
     const urlString = request.getUrl();
+    const fromUrl = page.url();
+    if (fromUrl === 'about:blank') {
+        throw new Error('Download requires that the page has been navigated to an url');
+    }
     const script = (urlString: string): Promise<string | void> => {
         return fetch(urlString)
             .then((resp) => {
